@@ -85,7 +85,10 @@ const c4: Guion = ({ d, duracion }: CtxGuion) => {
     { t: 0.02, tipo: 'pegar', ancla: ANCLA_AGENDA.objetivo, texto: 'Llamada preventiva' },
     { t: 0.04, tipo: 'pegar', ancla: ANCLA_AGENDA.interlocutor, texto: 'Conductor (transportador)' },
     { t: 0.06, tipo: 'pegar', ancla: ANCLA_AGENDA.actividad, texto: 'Disponibilidad, ubicación y hora estimada de llegada' },
-    { t: 0.08, hasta: fin, tipo: 'teclear', ancla: ANCLA_AGENDA.hora, texto: horaTr },
+    // El tecleo solo se muestra si dura al menos ~300 ms reales; con pasos cortos se pega la hora.
+    duracion * (fin - 0.08) >= 320
+      ? { t: 0.08, hasta: fin, tipo: 'teclear', ancla: ANCLA_AGENDA.hora, texto: horaTr }
+      : { t: 0.08, tipo: 'pegar', ancla: ANCLA_AGENDA.hora, texto: horaTr },
     { t: fin + 0.005, tipo: 'mover', ancla: ANCLA_AGENDA.btnAgendar },
     { t: T_C4_GUARDA1, tipo: 'clic', ancla: ANCLA_AGENDA.btnAgendar },
     { t: T_C4_FORM2, tipo: 'pegar', ancla: ANCLA_AGENDA.objetivo, texto: 'Llamada preventiva' },

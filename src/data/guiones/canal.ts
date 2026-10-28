@@ -55,7 +55,7 @@ const a1: Guion = ({ d, canal }: CtxGuion) => {
   return {
     vista: 'canal.bandeja' as Vista,
     ui: ordenar(ui),
-    pensamiento: `Entró «${s.asunto}» de ${s.remitente} por ${minuscula(info.label)}. La abro desde la bandeja para leerla completa antes de registrar nada: según R26, toda solicitud queda ligada a un interlocutor, una operación y una actividad, y la conservo en el expediente (R30).`,
+    pensamiento: `Entró «${s.asunto}» de ${s.remitente} por ${canal === 'llamada_ia' ? 'llamada' : minuscula(info.label)}. La abro desde la bandeja para leerla completa antes de registrar nada: según R26, toda solicitud queda ligada a un interlocutor, una operación y una actividad, y la conservo en el expediente (R30).`,
   };
 };
 

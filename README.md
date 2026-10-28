@@ -82,7 +82,7 @@ simulado atienda la Mesa. Las operaciones con `origen: 'agentes'` las moverá el
 
 Cinco fases secuenciales (Ingesta · Extracción · Validación · Clasificación y destino · Registro, cierre y aviso) con
 prerrequisitos redactados como lo que el cliente debe tener listo (stoppers de proyecto y de fase), actividades técnicas en
-días hábiles y criterios de certificación. El tiempo **lo calcula** `src/lib/rutaImplementacion.ts`; los ajustes exigen
+días hábiles y criterios de certificación. Con el estado inicial de ejemplo la Ruta da **8 semanas (40 días hábiles: 34 de trabajo técnico con la integración incluida + 6 por prerrequisitos faltantes)**. El tiempo **lo calcula** `src/lib/rutaImplementacion.ts`; los ajustes exigen
 justificación (≥ 20 caracteres) y autor. Persistencia en `localStorage` (`aion:levantamiento:haceb-coordinacion-logistica`),
 exportar/importar JSON y levantamiento compartido vía Supabase (`antifraude/.env.local`, sin credenciales sigue en modo
 local). Archivos: `src/data/implementacionData.ts`, `src/components/RutaImplementacion.tsx`, `SubprocesoSimulacion.tsx`.
