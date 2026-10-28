@@ -632,7 +632,7 @@ export default function Sistemas() {
                     <td className="px-5 py-2.5 text-right font-mono">{m?.cerradas ?? 0}</td>
                     <td className="px-5 py-2.5 text-right font-mono">{m?.escaladas ?? 0}</td>
                     <td className="px-5 py-2.5 text-right font-mono">{m ? `${Math.round(m.pctAutomatico)} %` : '—'}</td>
-                    <td className="px-5 py-2.5 text-right font-mono">{m ? m.contactosPorOperacion.toFixed(1) : '—'}</td>
+                    <td className="px-5 py-2.5 text-right font-mono">{m ? m.contactosPorOperacion.toFixed(1).replace(".", ",") : '—'}</td>
                   </tr>
                 )
               })}

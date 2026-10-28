@@ -67,9 +67,9 @@ const IDX_ASIGNACION = ETAPAS_FLUJO.indexOf('Asignacion')
 function valorKpi(id: string, k: MetricaKPI): { texto: string; detalle?: string } {
   switch (id) {
     case 'respuestaCliente':
-      return { texto: `${k.respuestaClienteMin.toFixed(1)} min` }
+      return { texto: `${k.respuestaClienteMin.toFixed(1).replace(".", ",")} min` }
     case 'respuestaTransportador':
-      return { texto: `${k.respuestaTransportadorMin.toFixed(1)} min` }
+      return { texto: `${k.respuestaTransportadorMin.toFixed(1).replace(".", ",")} min` }
     case 'confirmacionesAutomaticas':
       return { texto: `${k.pctConfirmacionesAutomaticas.toFixed(0)} %` }
     case 'llamadasExitosas':
@@ -77,13 +77,13 @@ function valorKpi(id: string, k: MetricaKPI): { texto: string; detalle?: string 
     case 'negociacionesCompletadas':
       return { texto: `${k.pctNegociacionesCompletadas.toFixed(0)} %`, detalle: `${k.negociacionesCompletadas} negociaciones con tarifa acordada` }
     case 'contactosPorOperacion':
-      return { texto: `${k.contactosPorOperacion.toFixed(1)}`, detalle: 'llamadas por operación' }
+      return { texto: `${k.contactosPorOperacion.toFixed(1).replace(".", ",")}`, detalle: 'llamadas por operación' }
     case 'anticipacionNovedades':
       return { texto: formatDuracion(k.anticipacionNovedadesMin) }
     case 'cumplimientoCompromisos':
       return { texto: `${k.pctCumplimientoCompromisos.toFixed(0)} %` }
     case 'satisfaccion':
-      return { texto: k.satisfaccion > 0 ? `${k.satisfaccion.toFixed(1)} / 5` : '—' }
+      return { texto: k.satisfaccion > 0 ? `${k.satisfaccion.toFixed(1).replace(".", ",")} / 5` : '—' }
     default:
       return { texto: '—' }
   }
@@ -113,7 +113,7 @@ function etapaMasAvanzada(o: Operacion): number {
 const todasExcepciones = (o: Operacion) => [...o.excepcionesPrevias, ...(o.excepcion ? [o.excepcion] : [])]
 
 function riesgoDe(o: Operacion): string | null {
-  if (o.retrasoHoras >= 2) return `Retraso de ${o.retrasoHoras.toFixed(1)} h sobre el compromiso`
+  if (o.retrasoHoras >= 2) return `Retraso de ${o.retrasoHoras.toFixed(1).replace(".", ",")} h sobre el compromiso`
   if (o.excepcion && o.excepcion.alternativas.some((a) => a.impactoSLA === 'alto')) return 'Novedad con impacto alto en el SLA'
   return null
 }

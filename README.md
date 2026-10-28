@@ -123,3 +123,9 @@ src/
   lib/ utils · rng · rutaImplementacion · levantamientoRemoto
 scripts/ smoke-motor.entry.ts · plan-smoke.entry.ts · plan-ver.mjs · verificar-agentes.mjs · guion-comercial.py
 ```
+
+## 9. QA visual
+
+Capturas de cada ruta y de las escenas del Director (flujo normal, tarifa sobre el tope, diferencia en la llegada, novedad en ruta,
+servicio cancelado, consulta entrante y modo teatro) a **1920×1080** y **1366×768** en `.playwright-mcp/qa-1920/` y `.playwright-mcp/qa-1366/`
+(Playwright con el Chromium local, simulación corriendo). Sin errores de consola en ninguna ruta.

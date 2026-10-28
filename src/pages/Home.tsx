@@ -231,7 +231,7 @@ export default function Home() {
               </div>
               <div className="mt-3 pt-2 border-t border-aion-line flex items-center justify-between text-[10px] text-aion-muted font-mono">
                 <span>{Math.round(m.pctAutomatico)}% automático</span>
-                <span>{m.contactosPorOperacion.toFixed(1)} contactos/op.</span>
+                <span>{m.contactosPorOperacion.toFixed(1).replace(".", ",")} contactos/op.</span>
               </div>
             </motion.button>
           )
