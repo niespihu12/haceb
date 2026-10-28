@@ -1011,3 +1011,19 @@ export function calcularTiempos(op: Operacion, opts: { esperaMin?: number; retra
   }
   return { llegadaOrigen, salida, llegadaDestino: llegada.getTime(), horasViaje };
 }
+
+/** Una reprogramación nunca deja el cargue de noche, en domingo ni en festivo. */
+export function ajustarCargue(ts: number): number {
+  const d = new Date(ts);
+  if (d.getHours() >= 16) {
+    d.setDate(d.getDate() + 1);
+    d.setHours(7, 30, 0, 0);
+  } else if (d.getHours() < 7) {
+    d.setHours(7, 30, 0, 0);
+  }
+  while (esNoHabil(d)) {
+    d.setDate(d.getDate() + 1);
+    d.setHours(7, 30, 0, 0);
+  }
+  return d.getTime();
+}

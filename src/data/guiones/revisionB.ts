@@ -272,3 +272,9 @@ export const revisionB: Guiones = {
   'Sobrecosto_liquidacion:z3': z3,
   z4,
 };
+
+// y3: recepción y revisión de las evidencias tras una diferencia de entrega (mismo escritorio que y2).
+revisionB.y3 = (c) => {
+  const g = revisionB.y2!(c);
+  return { ...g, pensamiento: 'Recibo las evidencias de ambas partes —fotos, remisión firmada y registro de descargue— y abro la reclamación por la diferencia; según R23 la operación no se cierra sin esa revisión.' };
+};

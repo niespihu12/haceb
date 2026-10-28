@@ -33,6 +33,7 @@ import {
   construirOfertas,
   esEtapaFlujo,
   INDICATIVO,
+  ajustarCargue,
   calcularTiempos,
   tarifaDeCierre,
   esTerminal,
@@ -473,7 +474,7 @@ function resolverAutomatica(c: Ctx): void {
   }
 }
 
-function aplicarEfecto(c: Ctx, efecto: EfectoAlternativa, origen: EtapaFlujo, motivo: string) {
+function aplicarEfecto(c: Ctx, efecto: EfectoAlternativa, origen: EtapaFlujo, motivo: string, horas = 0, tipo?: TipoExcepcion) {
   const { n } = c;
   if (efecto.tipo === 'cancelar') {
     n.etapa = 'Cancelada';
@@ -496,7 +497,12 @@ function aplicarEfecto(c: Ctx, efecto: EfectoAlternativa, origen: EtapaFlujo, mo
       n.ofertas = n.ofertas.map((o) => ({ ...o, tarifaFinal: null, estado: o.estado === 'sobre_tope' ? 'aceptada_preliminar' : o.estado }));
     }
     if (efecto.etapa === 'Confirmacion') {
-      n.fechaCargue += 4 * 3_600_000;
+      // Reprogramación autorizada: el cargue se corre las horas de la alternativa.
+      n.fechaCargue = ajustarCargue(n.fechaCargue + Math.max(2, horas) * 3_600_000);
+    }
+    if (efecto.etapa === 'Busqueda' && tipo === 'Sin_transportador' && horas > 0) {
+      // El cliente acepta otra fecha u horario de cargue.
+      n.fechaCargue = ajustarCargue(n.fechaCargue + horas * 3_600_000);
     }
     return;
   }
@@ -555,7 +561,7 @@ function aplicarDecision(c: Ctx, dh: DecisionSimulada): void {
   cerrarExcepcion(c, 'coordinador', alt, dh);
   evento(c, 'DecisionCoordinador', `${dh.por.split(' · ')[0]} · ${dh.decision === 'ALTERNATIVA' ? `alternativa ${alt.id}` : dh.decision.toLowerCase()} · ${exc.titulo}`);
   traza(c, origen, 'Coordinador', `Decisión sobre «${exc.titulo}»`, [`Propuesta del agente: ${exc.recomendada}`, `Impacto costo ${alt.impactoCosto} COP · ${alt.impactoHoras} h`], pl.regla, dh.decision === 'ALTERNATIVA' ? `Alternativa ${alt.id}: ${alt.titulo}` : alt.titulo, dh.por, 'La decisión vuelve al proceso como evento estructurado');
-  aplicarEfecto(c, efecto, origen, exc.titulo);
+  aplicarEfecto(c, efecto, origen, exc.titulo, dh.decision === 'RECHAZAR' ? 0 : alt.impactoHoras, exc.tipo);
 }
 
 // --- Probabilidad de excepción por etapa ------------------------------------------------------

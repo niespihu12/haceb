@@ -344,8 +344,73 @@ function construirDialogos(c: CtxDlg, rand: Rand): Record<string, DialogoLlamada
     objetivo: 'Cierre y satisfacción', interlocutor: 'cliente', nombre: contacto, telefono: tel, agente: ag.cliente, sentido: 'saliente',
     turnos: eInc
       ? [A(`${SALUDO_A} Le llamo para cerrar la operación ${op.id}. ¿Se completó satisfactoriamente?`), O(`Se completó, pero ${eInc.causa.replace(/^.*manifiesta que /, '').replace(/\.$/, '')}.`), A('Lamento el inconveniente. No queda como un comentario: abro un caso de seguimiento con responsable y plazo.'), O('Gracias.')]
+      : fin.casoSeguimiento
+      ? [A(`${SALUDO_A} Le llamo para cerrar la operación ${op.id}. ¿Se completó satisfactoriamente?`), O('Quedó pendiente la diferencia de la entrega; espero la respuesta de la reclamación.'), A('Queda como caso de seguimiento con responsable y plazo. ¿Cómo califica el servicio de 1 a 5?'), O(`${fin.satisfaccion ?? 3}.`)]
       : [A(`${SALUDO_A} Le llamo para cerrar la operación ${op.id}. ¿Se completó satisfactoriamente?`), O('Sí, todo bien.'), A('¿Observaciones sobre la atención, el cumplimiento de horarios o el desempeño?'), O('Ninguna, el servicio fue puntual.'), A('Gracias. ¿Cómo califica el servicio de 1 a 5?'), O(`${fin.satisfaccion ?? 5}.`)],
-    resultado: eInc ? 'con_novedad' : 'exitosa', resumen: eInc ? 'Inconformidad convertida en caso de seguimiento.' : `Servicio completado · calificación ${fin.satisfaccion ?? 5}/5.`,
+    resultado: eInc ? 'con_novedad' : 'exitosa', resumen: eInc ? 'Inconformidad convertida en caso de seguimiento.' : fin.casoSeguimiento ? 'Caso de seguimiento abierto por la diferencia en la entrega.' : `Servicio completado · calificación ${fin.satisfaccion ?? 5}/5.`,
+  });
+
+  /* Reprogramación autorizada: las llamadas de la segunda pasada usan la nueva hora de cargue */
+  const dIni = dia(op.fechaCargue);
+  const nuevaHora = `${dia(fin.fechaCargue)} a las ${horaMin(fin.fechaCargue)}`;
+  add('informar_r', {
+    objetivo: 'Informar asignación', interlocutor: 'cliente', nombre: contacto, telefono: tel, agente: ag.cliente, sentido: 'saliente',
+    turnos: [
+      A(`${SALUDO_A} Le informo que la reprogramación quedó autorizada para la operación ${op.id}.`),
+      A(`El vehículo ${c.placa}, conductor ${c.conductor}, se presentará el ${nuevaHora} en ${op.nodoOrigen.lugar}.`),
+      O('Perfecto, la mercancía estará lista para esa hora.'),
+      A('Registrado: actualizo la tarea de mercancía disponible en la agenda.'),
+    ],
+    resultado: 'exitosa', resumen: `Nueva hora de cargue informada al cliente: ${horaMin(fin.fechaCargue)}.`,
+  });
+  add('confirmar_r', {
+    objetivo: 'Confirmar con transportador', interlocutor: 'transportador', nombre: c.conductor, telefono: c.telT, agente: ag.seg, sentido: 'saliente',
+    turnos: [
+      A(`${SALUDO_A} Le confirmo la reprogramación del servicio ${op.id}: nueva presentación el ${nuevaHora}.`),
+      O('Confirmado, me presento a esa hora.'),
+      A('Registro su confirmación; el cliente tiene la misma información.'),
+    ],
+    resultado: 'exitosa', resumen: 'Transportador confirma la nueva hora de presentación.',
+  });
+  add('prev_transportador_ok', {
+    objetivo: 'Llamada preventiva', interlocutor: 'transportador', nombre: c.conductor, telefono: c.telT, agente: ag.seg, sentido: 'saliente',
+    turnos: [
+      A(`${SALUDO_A} Es la llamada preventiva del servicio ${op.id}. ¿Sigue disponible para la nueva hora?`),
+      O('Sí, saldré a tiempo.'),
+      A('¿A qué hora estima llegar al punto de cargue?'),
+      O(`Antes de las ${horaMin(fin.fechaCargue - 30 * 60_000)}.`, false),
+    ],
+    resultado: 'exitosa', resumen: 'Disponibilidad y hora estimada de llegada confirmadas para la nueva hora.',
+  });
+  add('prev_cliente_ok', {
+    objetivo: 'Llamada preventiva', interlocutor: 'cliente', nombre: c.despacho.nombre, telefono: c.despacho.telefono, agente: ag.seg, sentido: 'saliente',
+    turnos: [
+      A(`${SALUDO_A} Es la llamada preventiva de la operación ${op.id}. ¿La mercancía está preparada y el punto de cargue disponible para la nueva hora?`),
+      O('Sí, todo listo.'),
+      A('¿Algún otro cambio en la programación?'),
+      O('Ninguno.'),
+    ],
+    resultado: 'exitosa', resumen: 'Mercancía preparada y punto disponible para la nueva hora.',
+  });
+  add('nueva_fecha', {
+    objetivo: 'Informar novedad', interlocutor: 'cliente', nombre: contacto, telefono: tel, agente: ag.cliente, sentido: 'saliente',
+    turnos: [
+      A(`${SALUDO_A} No encontramos vehículo para la solicitud ${ruta} en las condiciones previstas para el ${dIni}.`),
+      A('¿Tiene flexibilidad de fecha u horario para el cargue?'),
+      O(`Sí, podemos cargar el ${nuevaHora}.`),
+      A('Registro el nuevo horario. Cualquier cambio comercial, contractual o económico queda sujeto a autorización (R08).'),
+    ],
+    resultado: 'exitosa', resumen: `Cliente acepta cargar el ${nuevaHora}.`,
+  });
+  add('cancelacion', {
+    objetivo: 'Informar novedad', interlocutor: 'cliente', nombre: contacto, telefono: tel, agente: ag.cliente, sentido: 'saliente',
+    turnos: [
+      A(`${SALUDO_A} Le informo sobre la solicitud ${ruta}: no fue posible conseguir un vehículo dentro de las condiciones autorizadas.`),
+      A('El responsable decidió cancelar el servicio; queda registrado con su causa.'),
+      O('Entiendo. Radicaremos una nueva solicitud con otra fecha.'),
+      A('Con gusto; quedamos atentos.'),
+    ],
+    resultado: 'exitosa', resumen: 'Cancelación informada al cliente; podrá radicar una nueva solicitud.',
   });
   void rand;
   const horaDe: Record<string, number> = {

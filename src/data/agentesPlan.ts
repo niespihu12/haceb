@@ -76,7 +76,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
   const transp = [...tr].reverse().find((o) => o.transportador)?.transportador;
   const D = d.dialogos;
 
-  const defEtapa = (S: EtapaFlujo, o: Operacion, nxt: Operacion, raised: Excepcion | null): DefEtapa => {
+  const defEtapa = (S: EtapaFlujo, o: Operacion, nxt: Operacion, raised: Excepcion | null, visita = 1): DefEtapa => {
     const det = DET[S];
     const f = (k: number) => !!raised && det[raised.tipo] === k;
     const S_ = (id: string, texto: string, ms: number, k: number, sistema: SistemaId, vista: Vista, extra: ExtraPaso = {}): PasoPlan =>
@@ -165,6 +165,16 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
           ],
         };
       case 'Confirmacion':
+        if (visita > 1) {
+          return {
+            pasos: [
+              S_('c1r', 'Llamando al cliente: nueva hora de cargue autorizada', 1500, -1, 'voz', 'voz.consola', { regla: 'R13', resultado: D.informar_r?.resumen }),
+              S_('c2r', 'Llamando al transportador: nueva hora de presentación', 1400, -1, 'voz', 'voz.consola', { regla: 'R13', resultado: D.confirmar_r?.resumen }),
+              S_('c3', 'Doble confirmación: cliente y transportador con la misma información', 600, -1, 'plataforma', 'plataforma.operacion', { resultado: 'ConfirmacionDoble' }),
+              S_('c4', 'Reprogramando las llamadas preventivas en la agenda centralizada', 800, -1, 'agenda', 'agenda.central', { regla: 'R26', resultado: 'Llamadas preventivas reagendadas con la nueva hora' }),
+            ],
+          };
+        }
         return {
           pasos: [
             S_('c1', 'Llamando al cliente: vehículo asignado, fecha y hora, lugar de cargue y receptor', 1800, -1, 'voz', 'voz.consola', { regla: 'R11', resultado: D.informar?.resumen }),
@@ -174,6 +184,15 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
           ],
         };
       case 'Preventiva':
+        if (visita > 1) {
+          return {
+            pasos: [
+              S_('c5r', 'Llamada preventiva al transportador para la nueva hora', 1400, -1, 'voz', 'voz.consola', { regla: 'R12', resultado: D.prev_transportador_ok?.resumen }),
+              S_('c6r', 'Llamada preventiva al cliente para la nueva hora', 1400, -1, 'voz', 'voz.consola', { regla: 'R12', resultado: D.prev_cliente_ok?.resumen }),
+              S_('c7', 'Programación ajustada y comunicada a las dos partes', 500, -1, 'plataforma', 'plataforma.operacion', { resultado: `Cargue ${horaMin(fin.fechaCargue)} · LlamadaPreventiva` }),
+            ],
+          };
+        }
         return {
           pasos: [
             S_('c5', 'Llamada preventiva al transportador: disponibilidad, ubicación y hora estimada de llegada', 1500, 0, 'voz', 'voz.consola', { regla: 'R12', resultado: D.prev_transportador?.resumen }),
@@ -232,7 +251,8 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
           pasos: [
             S_('y0', 'Llamando al cliente para validar el resultado de la entrega', 1500, -1, 'voz', 'voz.consola', { resultado: D.entrega?.resumen }),
             S_('y1', 'Cruce de entrega: lo informado por el transportador frente a lo confirmado por el cliente', 2000, 1, 'revision', 'revision.entrega', { regla: 'R23', resultado: d.cruceEntrega.detalle }),
-            S_('y2', 'Solicitando los soportes de entrega', 800, -1, 'revision', 'revision.entrega', { resultado: d.excepcion?.tipo === 'Diferencia_entrega' ? 'Entrega confirmada con diferencia · reclamación abierta · soportes cargados' : 'EntregaConfirmada · soporte cargado' }),
+            S_('y2', 'Solicitando los soportes de entrega', 800, -1, 'revision', 'revision.entrega', { resultado: d.excepcion?.tipo === 'Diferencia_entrega' ? 'Evidencias solicitadas al transportador y al destinatario' : 'EntregaConfirmada · soporte cargado' }),
+            ...(d.excepcion?.tipo === 'Diferencia_entrega' ? [S_('y3', 'Recibiendo y revisando las evidencias: fotos, remisión firmada y registro de descargue', 1300, -1, 'revision', 'revision.entrega', { regla: 'R23', resultado: 'Evidencias recibidas · reclamación abierta por la diferencia · EntregaConfirmada' })] : []),
           ],
         };
       case 'LlamadaCierre':
@@ -263,6 +283,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
     else bloques.push({ agente, pasos: [...pasos] });
   };
   const pendiente: Partial<Record<EtapaFlujo, TipoExcepcion>> = {};
+  const visitas: Partial<Record<EtapaFlujo, number>> = {};
 
   for (let i = 0; i < tr.length - 1; i++) {
     const cur = tr[i];
@@ -300,10 +321,14 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
           bitacora: `Decisión · ${resultado}`,
         }),
       ]);
+      if (exc.tipo === 'Sin_transportador' && !continua && nxt.etapa !== 'Cancelada' && alt.id === 'A') {
+        push(ag, [paso('w1', 'Llamando al cliente para consultar la flexibilidad de fecha u horario', v(1600), { sistema: 'voz', vista: 'voz.consola', regla: 'R08', resultado: D.nueva_fecha?.resumen })]);
+      }
       if (nxt.etapa === 'Cancelada') {
+        push(ag, [paso('x7', 'Llamando al cliente: se cancela el servicio y se explica la causa', v(1500), { sistema: 'voz', vista: 'voz.consola', regla: 'R28', resultado: D.cancelacion?.resumen })]);
         push(ag, [paso('x5', 'Cancelando el servicio: se informa al cliente y se cierra la solicitud', v(900), { sistema: 'plataforma', vista: 'plataforma.operacion', ok: false, termina: 'cancelada', estado: 'Cancelada', snapshot: i + 1, regla: 'R28', resultado: `OperacionCancelada · ${exc.titulo}`, variante: exc.tipo })]);
       } else if (continua) {
-        const def = defEtapa(S, cur, nxt, null);
+        const def = defEtapa(S, cur, nxt, null, visitas[S] ?? 1);
         const idx = DET[S][exc.tipo] ?? 0;
         const resto = def.pasos.slice(idx + 1);
         push(ag, resto.length ? resto : [paso('x6', 'Retomando la etapa con la decisión registrada', v(600), { sistema: 'plataforma', vista: 'plataforma.operacion', resultado: 'Decisión registrada en el expediente' })]);
@@ -332,7 +357,8 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
     if (!cur.excepcion && nxt.excepcion) {
       const exc = nxt.excepcion;
       const pl = PLANTILLA_EXCEPCION[exc.tipo];
-      const def = defEtapa(S, cur, nxt, exc);
+      visitas[S] = (visitas[S] ?? 0) + 1;
+      const def = defEtapa(S, cur, nxt, exc, visitas[S]);
       const idx = Math.min(DET[S][exc.tipo] ?? 0, def.pasos.length - 1);
       const trabajo = def.pasos.slice(0, idx + 1);
       trabajo[0] = { ...trabajo[0], estado: trabajo[0].estado ?? cur.etapa, snapshot: trabajo[0].snapshot ?? i };
@@ -348,9 +374,10 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
     }
 
     /* Etapa completada (con o sin novedad previa ya resuelta) */
-    const def = defEtapa(S, cur, nxt, null);
-    let pasos = def.pasos;
     const tipoPend = pendiente[S];
+    if (!tipoPend) visitas[S] = (visitas[S] ?? 0) + 1;
+    const def = defEtapa(S, cur, nxt, null, visitas[S] ?? 1);
+    let pasos = def.pasos;
     if (tipoPend) {
       const idx = DET[S][tipoPend] ?? -1;
       pasos = def.pasos.slice(idx + 1);

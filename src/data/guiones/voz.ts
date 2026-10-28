@@ -40,6 +40,7 @@ const CLAVE: Record<string, string> = {
   c1: 'informar', c2: 'confirmar', c5: 'prev_transportador', c6: 'prev_cliente',
   o1: 'presentacion_transportador', k3: 'despacho', t1: 'seguimiento_1', t4: 'informar_novedad', t3: 'consulta',
   g0: 'aviso', g3: 'recepcion', y0: 'entrega', z0: 'cierre',
+  c1r: 'informar_r', c2r: 'confirmar_r', c5r: 'prev_transportador_ok', c6r: 'prev_cliente_ok', w1: 'nueva_fecha', x7: 'cancelacion',
 };
 /** Etapa donde falló el contacto (Sin_respuesta) → diálogo que se reintenta en r1. */
 const CLAVE_REINTENTO: Record<string, string> = {
@@ -270,4 +271,10 @@ export const voz: Guiones = {
   y0: guionLlamada,
   z0: guionLlamada,
   r1: guionLlamada,
+  c1r: guionLlamada,
+  c2r: guionLlamada,
+  c5r: guionLlamada,
+  c6r: guionLlamada,
+  w1: guionLlamada,
+  x7: guionLlamada,
 };
