@@ -32,6 +32,9 @@ import {
   TRANSPORTADORES,
   construirOfertas,
   esEtapaFlujo,
+  INDICATIVO,
+  calcularTiempos,
+  tarifaDeCierre,
   esTerminal,
   generarOperacion,
   progresoDe,
@@ -242,8 +245,9 @@ function completarEtapa(c: Ctx, etapa: EtapaFlujo): void {
           o.tarifaFinal = null;
           continue;
         }
+        if (o.estado === 'sin_interes') continue;
         if (o.tarifaFinal !== null) continue;
-        o.tarifaFinal = Math.min(o.tarifaOfrecida, n.tarifaMaxima);
+        o.tarifaFinal = tarifaDeCierre(o.tarifaOfrecida, o.tarifaSolicitada, n.tarifaMaxima);
         o.estado = 'contraoferta_ok';
         llamar(c, { interlocutor: 'transportador', objetivo: 'Negociar tarifa', agente: 'Agente de negociación', etapa, nombre: o.nombre, resumen: `Presenta el viaje ${n.nodoOrigen.ciudad} → ${n.nodoDestino.ciudad}; acuerda ${new Intl.NumberFormat('es-CO').format(o.tarifaFinal)} COP dentro del tope.` });
       }
@@ -277,7 +281,7 @@ function completarEtapa(c: Ctx, etapa: EtapaFlujo): void {
       break;
     }
     case 'Confirmacion': {
-      n.receptor = { nombre: elegir(rng, RECEPTORES), telefono: `+57 3${entre(rng, 10, 24)} 555 0${entre(rng, 400, 899)}` };
+      n.receptor = { nombre: elegir(rng, RECEPTORES), telefono: `+57 ${INDICATIVO[n.nodoDestino.ciudad] ?? '601'} 555 0${entre(rng, 400, 899)}` };
       llamar(c, { interlocutor: 'cliente', objetivo: 'Informar asignación', agente: 'Agente de cliente', etapa, resumen: `Informa vehículo asignado (${n.transportador?.placa}); confirma fecha y hora, lugar de cargue y disponibilidad. Receptor: ${n.receptor.nombre}.` });
       llamar(c, { interlocutor: 'transportador', objetivo: 'Confirmar con transportador', agente: 'Agente de seguimiento', etapa, resumen: 'Confirma que recibió la información completa, conoce las condiciones y está preparado.' });
       evento(c, 'ConfirmacionDoble', 'Cliente y transportador confirmaron la misma información');
@@ -301,7 +305,7 @@ function completarEtapa(c: Ctx, etapa: EtapaFlujo): void {
       break;
     }
     case 'Cargue': {
-      n.horaSalida = ts;
+      n.horaSalida = calcularTiempos(n).salida;
       llamar(c, { interlocutor: 'cliente', objetivo: 'Confirmar despacho', agente: 'Agente de seguimiento', etapa, resumen: 'Confirma hora real de salida, condiciones del despacho y que la mercancía fue despachada.' });
       evento(c, 'CargueFinalizado', `Cargue finalizado · ${n.mercancia.unidades} und · ${n.mercancia.pesoKg} kg`);
       evento(c, 'DespachoConfirmado', `Despacho confirmado · salida ${new Date(ts).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}`);
@@ -325,7 +329,7 @@ function completarEtapa(c: Ctx, etapa: EtapaFlujo): void {
       traza(c, etapa, 'Agente de cliente', 'Se aproxima la hora estimada de llegada', ['Horarios de descargue', 'Instrucciones de ingreso'], 'R22', 'Confirmar preparación del destinatario', 'Llamada al contacto de recepción', 'Destino listo para recibir');
       break;
     case 'Descargue':
-      n.horaEntrega = ts;
+      n.horaEntrega = calcularTiempos(n).llegadaDestino;
       llamar(c, { interlocutor: 'destinatario', objetivo: 'Confirmar recepción', agente: 'Agente de seguimiento', etapa, resumen: 'Valida la recepción, pregunta por diferencias o daños y por observaciones.' });
       evento(c, 'LlegadaDestinoConfirmada', `Llegada y descargue en ${n.nodoDestino.ciudad} confirmados`);
       traza(c, etapa, 'Agente de seguimiento', 'El transportador llegó al destino', ['Hora reportada', 'Confirmación del contacto de recepción'], 'R16', 'Seguir hasta confirmar que la mercancía fue recibida', 'Llamada de recepción', 'Mercancía recibida');
@@ -391,9 +395,14 @@ function levantarExcepcion(c: Ctx, tipo: TipoExcepcion, etapa: EtapaFlujo): void
     const o = n.ofertas[0];
     o.estado = 'sobre_tope';
     o.tarifaSolicitada = Math.round((n.tarifaMaxima * (1 + entre(rng, 6, 18) / 100)) / 10_000) * 10_000;
+    // Los demás candidatos no tienen vehículo disponible para esa fecha: por eso la persona autoriza esta tarifa.
+    for (const x of n.ofertas.slice(1)) {
+      x.estado = 'sin_interes';
+      x.tarifaFinal = null;
+    }
   }
   if (tipo === 'Seleccion_manual') {
-    for (const o of n.ofertas) if (o.tarifaFinal === null && o.estado !== 'sobre_tope') o.tarifaFinal = Math.min(o.tarifaOfrecida, n.tarifaMaxima);
+    for (const o of n.ofertas) if (o.tarifaFinal === null && o.estado !== 'sobre_tope') o.tarifaFinal = tarifaDeCierre(o.tarifaOfrecida, o.tarifaSolicitada, n.tarifaMaxima);
   }
   if ((tipo === 'Mercancia_no_lista' || tipo === 'Retraso_transportador') && !n.transportador) return;
   const categoria: CategoriaDecision = pl.categoria ? pl.categoria(n) : pl.categoriaBase;
@@ -530,12 +539,18 @@ function aplicarDecision(c: Ctx, dh: DecisionSimulada): void {
     }
   }
   if (exc.tipo === 'Seleccion_manual') {
-    const o = mejorOferta(n, alt.id === 'A' ? 'tarifa' : alt.id === 'B' ? 'cumplimiento' : 'compat');
+    const barata = mejorOferta(n, 'tarifa');
+    let o = alt.id === 'A' ? barata : alt.id === 'B' ? mejorOferta(n, 'cumplimiento') : mejorOferta(n, 'compat');
+    if (alt.id === 'C' && o.transportadorId === barata.transportadorId) {
+      const t = (x: typeof o) => x.tarifaFinal ?? x.tarifaOfrecida;
+      const otra = n.ofertas.filter((x) => x.estado !== 'sin_interes' && x.estado !== 'sobre_tope' && x.transportadorId !== barata.transportadorId).sort((a, b) => t(a) - t(b))[0];
+      if (otra) o = otra;
+    }
     n.transportador = TRANSP(o.transportadorId);
     n.tarifaPactada = o.tarifaFinal ?? o.tarifaOfrecida;
   }
   if (exc.tipo === 'Inconformidad_cliente') n.casoSeguimiento = true;
-  if (exc.tipo === 'Diferencia_entrega' && alt.id === 'C') n.casoSeguimiento = true;
+  if (exc.tipo === 'Diferencia_entrega') n.casoSeguimiento = true;
   // Tarifa final contra el tope: tras autorizar, la tarifa pactada se fija al asignar
   cerrarExcepcion(c, 'coordinador', alt, dh);
   evento(c, 'DecisionCoordinador', `${dh.por.split(' · ')[0]} · ${dh.decision === 'ALTERNATIVA' ? `alternativa ${alt.id}` : dh.decision.toLowerCase()} · ${exc.titulo}`);

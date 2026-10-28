@@ -15,8 +15,8 @@ export function formatPercent(value: number, decimals = 1): string {
 
 /** Valor comercial en pesos colombianos, compacto: $ 84,2 M */
 export function formatCOP(value: number): string {
-  if (value >= 1_000_000_000) return `$ ${(value / 1_000_000_000).toFixed(2)} MM`
-  if (value >= 1_000_000) return `$ ${(value / 1_000_000).toFixed(1)} M`
+  if (value >= 1_000_000_000) return `$ ${(value / 1_000_000_000).toFixed(2).replace('.', ',')} MM`
+  if (value >= 1_000_000) return `$ ${(value / 1_000_000).toFixed(1).replace('.', ',')} M`
   if (value >= 1_000) return `$ ${Math.round(value / 1_000)} K`
   return `$ ${Math.round(value)}`
 }

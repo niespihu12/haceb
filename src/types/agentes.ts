@@ -315,6 +315,8 @@ export interface DatosCaso {
   excepcion: Excepcion | null;
   decision: DecisionCaso | null;
   compromisos: Compromiso[];
+  /** Tiempos coherentes del servicio: llegada a origen, salida, llegada a destino (en horario de recibo). */
+  tiempos: { llegadaOrigen: number; salida: number; llegadaDestino: number; horasViaje: number };
   expediente: { numero: string; hash: string };
   sesion: { usuario: string; servidor: string; terminal: string; vm: string };
   /** Año calendario de la operación. */

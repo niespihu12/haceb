@@ -171,13 +171,19 @@ export const NODOS: Nodo[] = [
 /** Los despachos salen de la planta/CEDI de Medellín o de los CEDI regionales. */
 export const NODOS_ORIGEN: Nodo[] = NODOS.filter((n) => ['N-MDE', 'N-BOG', 'N-CLO', 'N-BAQ'].includes(n.id));
 
+/** Indicativo telefónico fijo de cada ciudad (para los teléfonos de las sedes). */
+export const INDICATIVO: Record<string, string> = {
+  Medellín: '604', Bogotá: '601', Cali: '602', Barranquilla: '605', Bucaramanga: '607', Pereira: '606', Cartagena: '605',
+  Cúcuta: '607', Ibagué: '608', 'Santa Marta': '605', Pasto: '602', Manizales: '606', Villavicencio: '608',
+};
+
 export const TRANSPORTADORES: Transportador[] = [
   { id: 'TR-01', nombre: 'Transportes Andina Carga', base: 'Medellín', flota: ['Tractomula', 'Doble troque', 'Sencillo'], cumplimiento: 96, conductor: 'Gustavo Londoño', telefono: '+57 310 555 0301', placa: 'SXK 482' },
   { id: 'TR-02', nombre: 'Logística Río Magdalena', base: 'Barrancabermeja', flota: ['Tractomula', 'Doble troque'], cumplimiento: 91, conductor: 'Edwin Martelo', telefono: '+57 311 555 0302', placa: 'TQB 915' },
   { id: 'TR-03', nombre: 'Fletes del Pacífico', base: 'Cali', flota: ['Sencillo', 'Turbo', 'Camioneta NHR'], cumplimiento: 94, conductor: 'Jhon Fredy Quiñones', telefono: '+57 312 555 0303', placa: 'WLM 207' },
   { id: 'TR-04', nombre: 'Cargas Express Capital', base: 'Bogotá', flota: ['Turbo', 'Sencillo', 'Camioneta NHR'], cumplimiento: 89, conductor: 'Wilson Peña', telefono: '+57 313 555 0304', placa: 'UDH 630' },
   { id: 'TR-05', nombre: 'Transurandina', base: 'Bucaramanga', flota: ['Tractomula', 'Sencillo'], cumplimiento: 92, conductor: 'Néstor Rueda', telefono: '+57 314 555 0305', placa: 'SOP 118' },
-  { id: 'TR-06', nombre: 'Costa Atlántica Logística', base: 'Barranquilla', flota: ['Tractomula', 'Doble troque', 'Turbo'], cumplimiento: 87, conductor: 'Rafael Pertuz', telefono: '+57 315 555 0306', placa: 'KJR 744' },
+  { id: 'TR-06', nombre: 'Costa Atlántica Logística', base: 'Barranquilla', flota: ['Tractomula', 'Doble troque', 'Turbo'], cumplimiento: 87, conductor: 'Rafael Pertuz', telefono: '+57 315 555 0306', placa: 'TKR 744' },
   { id: 'TR-07', nombre: 'Eje Cafetero Transportes', base: 'Pereira', flota: ['Sencillo', 'Turbo', 'Camioneta NHR'], cumplimiento: 95, conductor: 'Óscar Duque', telefono: '+57 316 555 0307', placa: 'VHT 359' },
   { id: 'TR-08', nombre: 'Montecarga del Sur', base: 'Pasto', flota: ['Sencillo', 'Turbo'], cumplimiento: 90, conductor: 'Álvaro Chamorro', telefono: '+57 317 555 0308', placa: 'XNC 521' },
   { id: 'TR-09', nombre: 'Veloz Carga Oriente', base: 'Villavicencio', flota: ['Doble troque', 'Sencillo', 'Turbo'], cumplimiento: 85, conductor: 'Henry Ramírez', telefono: '+57 318 555 0309', placa: 'TZA 876' },
@@ -228,13 +234,16 @@ export const DATOS_QUE_PUEDEN_FALTAR = [
 
 // --- Tarifas (parámetros de ejemplo) ------------------------------------------------
 
-const KM_VEHICULO: Record<TipoVehiculo, { cop: number; kg: number }> = {
-  'Camioneta NHR': { cop: 3_800, kg: 1_800 },
-  Turbo: { cop: 4_800, kg: 4_500 },
-  Sencillo: { cop: 6_200, kg: 8_500 },
-  'Doble troque': { cop: 7_800, kg: 17_000 },
-  Tractomula: { cop: 9_400, kg: 32_000 },
+/** Tarifa por km, capacidad en kg y volumen útil en m³ de cada tipo de vehículo. */
+export const KM_VEHICULO: Record<TipoVehiculo, { cop: number; kg: number; m3: number }> = {
+  'Camioneta NHR': { cop: 3_800, kg: 1_800, m3: 12 },
+  Turbo: { cop: 4_800, kg: 4_500, m3: 24 },
+  Sencillo: { cop: 6_200, kg: 8_500, m3: 38 },
+  'Doble troque': { cop: 7_800, kg: 17_000, m3: 58 },
+  Tractomula: { cop: 9_400, kg: 32_000, m3: 85 },
 };
+
+const COSTA = new Set(['N-BAQ', 'N-CTG', 'N-SMR']);
 
 export function distanciaKm(a: Nodo, b: Nodo): number {
   const R = 6371;
@@ -242,7 +251,9 @@ export function distanciaKm(a: Nodo, b: Nodo): number {
   const dLat = rad(b.lat - a.lat);
   const dLng = rad(b.lng - a.lng);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return Math.round(2 * R * Math.asin(Math.sqrt(h)) * 1.32);
+  // Factor de sinuosidad: la carretera andina da más vueltas que la de la costa.
+  const factor = COSTA.has(a.id) || COSTA.has(b.id) ? 1.4 : 1.7;
+  return Math.round(2 * R * Math.asin(Math.sqrt(h)) * factor);
 }
 
 export function tarifaReferencia(vehiculo: TipoVehiculo, km: number): number {
@@ -255,11 +266,13 @@ export function tarifaTope(referencia: number): number {
   return Math.round((referencia * 1.08) / 10_000) * 10_000;
 }
 
-export function vehiculoPara(pesoKg: number): TipoVehiculo {
-  if (pesoKg <= 1_800) return 'Camioneta NHR';
-  if (pesoKg <= 4_500) return 'Turbo';
-  if (pesoKg <= 8_500) return 'Sencillo';
-  if (pesoKg <= 17_000) return 'Doble troque';
+export function vehiculoPara(pesoKg: number, volumenM3 = 0, km = 0): TipoVehiculo {
+  const orden: TipoVehiculo[] = ['Camioneta NHR', 'Turbo', 'Sencillo', 'Doble troque', 'Tractomula'];
+  // En troncales largas no se contrata una camioneta de 1,8 t.
+  const desde = km > 400 ? 1 : 0;
+  for (const v of orden.slice(desde)) {
+    if (KM_VEHICULO[v].kg >= pesoKg && KM_VEHICULO[v].m3 >= volumenM3) return v;
+  }
   return 'Tractomula';
 }
 
@@ -277,7 +290,9 @@ export const idOperacion = (seq: number): string => `OP-${String(seq).padStart(4
 
 export function generarMercancia(rng: Rng): Mercancia {
   const m = elegir(rng, MERCANCIAS);
-  const unidades = entre(rng, 18, 220);
+  // Un despacho cabe en la mayor capacidad (tractomula): 85 m³ y 30 t.
+  const tope = Math.max(6, Math.min(Math.floor(80 / m.m3Unidad), Math.floor(30_000 / m.kgUnidad)));
+  const unidades = Math.min(entre(rng, 12, 110), tope);
   return {
     tipo: m.tipo,
     descripcion: m.descripcion,
@@ -294,11 +309,11 @@ export function generarOperacion(ts: number, rng: Rng, seq = siguienteSeq()): Op
   const nodoOrigen = elegir(rng, NODOS_ORIGEN);
   const nodoDestino = elegir(rng, NODOS.filter((n) => n.id !== nodoOrigen.id));
   const mercancia = generarMercancia(rng);
-  const vehiculo = vehiculoPara(mercancia.pesoKg);
   const km = distanciaKm(nodoOrigen, nodoDestino);
+  const vehiculo = vehiculoPara(mercancia.pesoKg, mercancia.volumenM3, km);
   const ref = tarifaReferencia(vehiculo, km);
   const diaCargue = new Date(ts + entre(rng, 1, 3) * 86_400_000);
-  if (diaCargue.getDay() === 0) diaCargue.setDate(diaCargue.getDate() + 1);
+  while (esNoHabil(diaCargue)) diaCargue.setDate(diaCargue.getDate() + 1);
   diaCargue.setHours(7 + entre(rng, 0, 7), entre(rng, 0, 1) * 30, 0, 0);
   const fechaCargue = diaCargue.getTime();
   const llamada = canal === 'llamada_ia';
@@ -521,7 +536,9 @@ export const PLANTILLA_EXCEPCION: Record<TipoExcepcion, PlantillaExcepcion> = {
         alternativas: [
           alt('A', `Menor tarifa · ${barata.nombre}`, `Tarifa ${cop(t(barata))}.`, t(barata) - t(ordenadas[ordenadas.length - 1]), 0, 'ninguno', ['R09']),
           alt('B', `Mayor cumplimiento · ${cumplidora.nombre}`, `Cumplimiento histórico ${cumplidora.cumplimiento} %.`, t(cumplidora) - t(barata), 0, 'ninguno', ['R09', 'R05']),
-          alt('C', `Mayor compatibilidad · ${compatible.nombre}`, `Compatibilidad ${compatible.compatibilidad} % con el servicio.`, t(compatible) - t(barata), 0, 'ninguno', ['R09', 'R05']),
+          (compatible.transportadorId !== barata.transportadorId || ordenadas.length < 2)
+            ? alt('C', `Mayor compatibilidad · ${compatible.nombre}`, `Compatibilidad ${compatible.compatibilidad} % con el servicio.`, t(compatible) - t(barata), 0, 'ninguno', ['R09', 'R05'])
+            : alt('C', `Segunda mejor tarifa · ${ordenadas[1].nombre}`, `Tarifa ${cop(t(ordenadas[1]))}.`, t(ordenadas[1]) - t(barata), 0, 'ninguno', ['R09', 'R05']),
         ],
         recomendada: 'A',
       };
@@ -780,8 +797,9 @@ export const PLANTILLA_EXCEPCION: Record<TipoExcepcion, PlantillaExcepcion> = {
     agente: 'Agente de cliente',
     rechazo: { tipo: 'continuar' },
     anticipacion: [5, 25],
-    construir: (_op, rng) => {
-      const dif = elegir(rng, ['faltan unidades', 'hay cajas con daño visible', 'la remisión no coincide con lo recibido']);
+    construir: (op, rng) => {
+      const f = entre(rng, 2, 9);
+      const dif = elegir(rng, [`recibió ${op.mercancia.unidades - f} de ${op.mercancia.unidades} unidades`, `hay ${f} cajas con daño visible`, 'la remisión no coincide con lo recibido']);
       return {
         titulo: 'Transportador y cliente no coinciden sobre la entrega',
         causa: `El transportador informa entrega completa; el destinatario indica que ${dif}.`,
@@ -863,7 +881,9 @@ export function construirOfertas(op: Operacion, rng: Rng) {
   const ref = op.tarifaMaxima / 1.08;
   const candidatos = mezclar(rng, TRANSPORTADORES.filter((t) => t.flota.includes(op.vehiculoRequerido))).slice(0, entre(rng, 3, 4));
   return candidatos.map((t) => {
-    const ofrecida = Math.round((ref * (0.94 + rng() * 0.1)) / 10_000) * 10_000;
+    // Haceb ofrece un solo flete por viaje; el transportador puede pedir hasta 8 % más.
+    const ofrecida = Math.round((ref * 0.94) / 10_000) * 10_000;
+    const pide = Math.round((ofrecida * (1 + entre(rng, 0, 8) / 100)) / 10_000) * 10_000;
     return {
       transportadorId: t.id,
       nombre: t.nombre,
@@ -871,7 +891,7 @@ export function construirOfertas(op: Operacion, rng: Rng) {
       compatibilidad: entre(rng, 72, 98),
       cumplimiento: t.cumplimiento,
       tarifaOfrecida: ofrecida,
-      tarifaSolicitada: ofrecida,
+      tarifaSolicitada: pide,
       tarifaFinal: null as number | null,
       estado: 'aceptada_preliminar' as const,
     };
@@ -934,4 +954,60 @@ export function calcularCanalMetrics(ops: Operacion[]): CanalMetrics[] {
       contactosPorOperacion: o.length ? o.reduce((s, x) => s + x.llamadas.length, 0) / o.length : 0,
     };
   });
+}
+
+
+// --- Calendario y tiempos de servicio ----------------------------------------------------
+
+/** Festivos de Colombia (2026-2027) en que no se carga ni se recibe. */
+const FESTIVOS = new Set([
+  '2026-11-02', '2026-11-16', '2026-12-08', '2026-12-25',
+  '2027-01-01', '2027-01-11', '2027-03-22', '2027-03-25', '2027-03-26', '2027-05-01',
+]);
+
+const isoLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Domingo o festivo. */
+export function esNoHabil(d: Date): boolean {
+  return d.getDay() === 0 || FESTIVOS.has(isoLocal(d));
+}
+
+/** Tarifa a la que cierra la negociación: si el transportador pide más, se contrapropone el punto medio. */
+export function tarifaDeCierre(ofrecida: number, solicitada: number, tope: number): number {
+  const medio = solicitada > ofrecida ? Math.round((ofrecida + solicitada) / 2 / 10_000) * 10_000 : ofrecida;
+  return Math.min(medio, tope);
+}
+
+export interface TiemposServicio {
+  llegadaOrigen: number;
+  salida: number;
+  llegadaDestino: number;
+  /** Horas de viaje (sin la pernocta). */
+  horasViaje: number;
+}
+
+/**
+ * Tiempos coherentes de un servicio: el transportador llega poco antes del cargue, espera, se carga,
+ * viaja a ~45 km/h más descansos y llega en horario de recibo (07:00-16:00; si no, al día hábil siguiente).
+ */
+export function calcularTiempos(op: Operacion, opts: { esperaMin?: number; retrasoRutaH?: number; adelantoMin?: number } = {}): TiemposServicio {
+  const adelanto = opts.adelantoMin ?? 5 + (op.seq % 25);
+  const espera = opts.esperaMin ?? 15 + (op.seq % 4) * 10;
+  const cargue = 60 + (op.seq % 4) * 15;
+  const llegadaOrigen = op.fechaCargue - adelanto * 60_000;
+  const salida = llegadaOrigen + (espera + cargue) * 60_000;
+  const horasViaje = op.distanciaKm / 45 + 1 + (opts.retrasoRutaH ?? 0);
+  let llegada = new Date(salida + horasViaje * 3_600_000);
+  const h = llegada.getHours() + llegada.getMinutes() / 60;
+  if (h >= 16) {
+    llegada.setDate(llegada.getDate() + 1);
+    llegada.setHours(7, 30 + (op.seq % 4) * 15, 0, 0);
+  } else if (h < 7) {
+    llegada.setHours(7, 30 + (op.seq % 4) * 15, 0, 0);
+  }
+  while (esNoHabil(llegada)) {
+    llegada = new Date(llegada.getTime() + 86_400_000);
+    llegada.setHours(7, 30, 0, 0);
+  }
+  return { llegadaOrigen, salida, llegadaDestino: llegada.getTime(), horasViaje };
 }

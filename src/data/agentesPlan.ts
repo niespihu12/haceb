@@ -12,7 +12,7 @@ import type { Canal } from '@/types';
 import type { CtxGuion } from './guiones/tipos';
 import { GUIONES } from './guiones';
 import { AGENTES_MAP, ETAPA_AGENTE, humanoPara } from './agentesCatalogo';
-import { CANAL_INFO, ETAPA_LABEL_CORTO, PLANTILLA_EXCEPCION, esEtapaFlujo, siguienteEtapa } from './mockData';
+import { CANAL_INFO, ETAPA_LABEL_CORTO, KM_VEHICULO, PLANTILLA_EXCEPCION, esEtapaFlujo, siguienteEtapa } from './mockData';
 import { formatCOP, miles, pesos, rngDesde, horaMin } from './agentesUtil';
 import { rutaDe } from './agentesDatos';
 
@@ -107,7 +107,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
         return {
           pasos: [
             S_('v1', 'Revisando los 9 datos mínimos de la solicitud', 2200, 0, 'revision', 'revision.datos', { regla: 'R01', resultado: '9 de 9 datos presentes' }),
-            S_('v2', 'Comprobando coherencia entre peso, volumen y vehículo requerido', 1000, -1, 'revision', 'revision.datos', { regla: 'R01', resultado: `${miles(o.mercancia.pesoKg)} kg dentro de la capacidad de ${o.vehiculoRequerido}` }),
+            S_('v2', 'Comprobando coherencia entre peso, volumen y vehículo requerido', 1000, -1, 'revision', 'revision.datos', { regla: 'R01', resultado: `${miles(o.mercancia.pesoKg)} kg y ${o.mercancia.volumenM3.toString().replace('.', ',')} m³ dentro de la capacidad de ${o.vehiculoRequerido} (${miles(KM_VEHICULO[o.vehiculoRequerido].kg)} kg · ${KM_VEHICULO[o.vehiculoRequerido].m3} m³)` }),
             S_('v3', 'Solicitud suficiente para iniciar la operación', 500, -1, 'plataforma', 'plataforma.operacion', { resultado: 'SolicitudValidada' }),
           ],
         };
@@ -116,7 +116,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
           pasos: [
             S_('p1', `Registrando la operación con identificador único ${o.id}`, 900, -1, 'plataforma', 'plataforma.operacion', { regla: 'R03', resultado: `${o.id} · ${ruta} · OperacionRegistrada` }),
             S_('p2', 'Identificando restricciones operativas, fechas comprometidas y recursos requeridos', 1100, -1, 'plataforma', 'plataforma.operacion', { resultado: `${o.vehiculoRequerido} · cargue ${horaMin(o.fechaCargue)} · ${o.requisitoEspecial ?? 'sin requisitos especiales'}` }),
-            S_('p3', `Llamando al contacto autorizado (${contacto}): disponibilidad de cargue, acceso y horarios`, 1800, -1, 'voz', 'voz.consola', { regla: 'R04', resultado: D.planeacion?.resumen }),
+            S_('p3', `Llamando a Despachos de la sede de origen (${D.planeacion?.nombre ?? contacto}): disponibilidad de cargue, acceso y horarios`, 1800, -1, 'voz', 'voz.consola', { regla: 'R04', resultado: D.planeacion?.resumen }),
             S_('p4', 'Registrando el compromiso «mercancía disponible» en la agenda', 600, -1, 'agenda', 'agenda.central', { regla: 'R26', resultado: `Compromiso del cliente · vence ${horaMin(o.fechaCargue)}` }),
           ],
         };
@@ -152,7 +152,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
         return {
           pasos: [
             S_('s1', 'Consolidando ofertas, condiciones y resultados de negociación', 1200, -1, 'plataforma', 'plataforma.seleccion', { resultado: `${nxt.ofertas.length || rondas.length} ofertas consolidadas` }),
-            S_('s2', raised ? 'La selección queda en manos del coordinador' : '¿Selección automática? Verificando requisitos operativos, documentales y comerciales', 900, 1, 'plataforma', 'plataforma.seleccion', { regla: 'R09', resultado: 'Cumple los tres requisitos' }),
+            S_('s2', raised ? 'La selección queda en manos del coordinador' : '¿Selección automática? Verificando requisitos operativos, documentales y comerciales', 900, 1, 'plataforma', 'plataforma.seleccion', { regla: 'R09', resultado: d.excepcion?.tipo === 'Tarifa_sobre_tope' ? `Operativo y documental cumplen; el comercial requirió autorización de ${humanoPara('Tarifa_sobre_tope').nombre}` : 'Cumple los tres requisitos' }),
             S_('s3', `Transportador seleccionado: ${t?.nombre ?? '—'}`, 700, -1, 'plataforma', 'plataforma.seleccion', { resultado: `${t?.nombre ?? '—'} · ${pesos(nxt.tarifaPactada ?? o.tarifaPactada ?? o.tarifaMaxima)} · TransportadorSeleccionado` }),
           ],
         };
@@ -178,7 +178,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
           pasos: [
             S_('c5', 'Llamada preventiva al transportador: disponibilidad, ubicación y hora estimada de llegada', 1500, 0, 'voz', 'voz.consola', { regla: 'R12', resultado: D.prev_transportador?.resumen }),
             S_('c6', 'Llamada preventiva al cliente: mercancía lista y punto de cargue disponible', 1500, 1, 'voz', 'voz.consola', { regla: 'R12', resultado: D.prev_cliente?.resumen }),
-            S_('c7', 'Sin cambios en la programación', 500, -1, 'plataforma', 'plataforma.operacion', { resultado: 'LlamadaPreventiva' }),
+            S_('c7', d.excepcion?.tipo === 'Retraso_transportador' || d.excepcion?.tipo === 'Mercancia_no_lista' ? 'Programación ajustada y comunicada a las dos partes' : 'Sin cambios en la programación', 500, -1, 'plataforma', 'plataforma.operacion', { resultado: d.excepcion?.tipo === 'Retraso_transportador' || d.excepcion?.tipo === 'Mercancia_no_lista' ? `Cargue ${horaMin(fin.fechaCargue)} · LlamadaPreventiva` : 'LlamadaPreventiva' }),
           ],
         };
       case 'Presentacion':
@@ -207,7 +207,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
             S_('t0', 'Verificando que el conductor esté en condiciones seguras para atender la llamada', 700, 0, 'tablero', 'tablero.seguimiento', { regla: 'R18', resultado: 'Condiciones seguras: puede atender' }),
             S_('t1', 'Llamada programada al transportador: estado, ubicación, novedades y hora estimada', 1800, 1, 'voz', 'voz.consola', { regla: 'R19', resultado: D.seguimiento_1?.resumen }),
             ...(nov ? [S_('t4', 'Informando al cliente la novedad: lo confirmado y lo estimado', 1600, -1, 'voz', 'voz.consola', { regla: 'R19', resultado: D.informar_novedad?.resumen })] : []),
-            S_('t2', 'Registrando el seguimiento y actualizando la hora de llegada como estimada', 900, -1, 'tablero', 'tablero.seguimiento', { resultado: 'SeguimientoRegistrado' }),
+            S_('t2', 'Registrando el seguimiento y actualizando la hora de llegada como estimada', 900, -1, 'tablero', 'tablero.seguimiento', { resultado: `SeguimientoRegistrado · llegada estimada ${horaMin(d.tiempos.llegadaDestino)}` }),
             ...(consulta ? [S_('t3', 'El cliente consulta el estado: valido su autorización e informo lo confirmado', 1500, -1, 'voz', 'voz.consola', { regla: 'R20', resultado: D.consulta?.resumen })] : []),
           ],
         };
@@ -222,7 +222,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
       case 'Descargue':
         return {
           pasos: [
-            S_('g2', 'Registrando la llegada al destino y confirmándola con recepción', 1000, 0, 'revision', 'revision.entrega', { regla: 'R16', resultado: `Llegada a ${o.nodoDestino.lugar}` }),
+            S_('g2', 'Registrando la llegada al destino y confirmándola con recepción', 1000, 0, 'revision', 'revision.entrega', { regla: 'R16', resultado: `Llegada a ${o.nodoDestino.lugar} a las ${horaMin(d.tiempos.llegadaDestino)} · confirmada por ${fin.receptor?.nombre ?? 'recepción'}` }),
             S_('g3', 'Siguiendo el descargue; consultando si hay diferencias o daños', 1500, -1, 'voz', 'voz.consola', { resultado: D.recepcion?.resumen }),
             S_('g4', 'Mercancía recibida por el destinatario', 500, -1, 'plataforma', 'plataforma.operacion', { resultado: 'LlegadaDestinoConfirmada' }),
           ],
@@ -232,7 +232,7 @@ export function generarPlan(seq: number, canal: Canal, escenario: Escenario, d: 
           pasos: [
             S_('y0', 'Llamando al cliente para validar el resultado de la entrega', 1500, -1, 'voz', 'voz.consola', { resultado: D.entrega?.resumen }),
             S_('y1', 'Cruce de entrega: lo informado por el transportador frente a lo confirmado por el cliente', 2000, 1, 'revision', 'revision.entrega', { regla: 'R23', resultado: d.cruceEntrega.detalle }),
-            S_('y2', 'Solicitando los soportes de entrega', 800, -1, 'revision', 'revision.entrega', { resultado: 'EntregaConfirmada · soporte cargado' }),
+            S_('y2', 'Solicitando los soportes de entrega', 800, -1, 'revision', 'revision.entrega', { resultado: d.excepcion?.tipo === 'Diferencia_entrega' ? 'Entrega confirmada con diferencia · reclamación abierta · soportes cargados' : 'EntregaConfirmada · soporte cargado' }),
           ],
         };
       case 'LlamadaCierre':

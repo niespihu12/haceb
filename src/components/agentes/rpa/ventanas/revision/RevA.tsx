@@ -1,6 +1,7 @@
 // Ventana «Revisiones del proceso» (E4a): revision.datos, revision.documentos y revision.cruzada.
 // Son listas de chequeo y cruces: cada ítem se revisa uno por uno (foco en la fila, check/cruz, barra de progreso)
 // y a progreso = 1 la pantalla muestra el resultado final. Todo es función pura del progreso del paso.
+import { KM_VEHICULO } from '@/data/mockData';
 import { memo, type ReactNode } from 'react';
 import { ArrowLeftRight, FileCheck, ListChecks, Truck, UserRound } from 'lucide-react';
 import type { Caso, ItemRevision, PasoPlan, Vista } from '@/types/agentes';
@@ -114,7 +115,7 @@ function PanelLista({ caso, activo, p, titulo, icono, items, tipo }: PropsLista)
   const op = caso.datos.trayectoria[0];
   const pesoOk = items.find(i => i.id === 'peso')?.ok ?? true;
   const coherenciaTexto = pesoOk
-    ? `${miles(op.mercancia.pesoKg)} kg dentro de la capacidad de ${op.vehiculoRequerido}`
+    ? `${miles(op.mercancia.pesoKg)} kg y ${op.mercancia.volumenM3.toString().replace('.', ',')} m³ dentro de la capacidad de ${op.vehiculoRequerido} (${miles(KM_VEHICULO[op.vehiculoRequerido].kg)} kg · ${KM_VEHICULO[op.vehiculoRequerido].m3} m³)`
     : 'No se puede verificar: falta el peso';
   const tCohMover = tAccion(activo, anclaItem('coherencia'), 'mover');
   const tCohFin = tAccion(activo, anclaItem('coherencia'), 'resaltar');
