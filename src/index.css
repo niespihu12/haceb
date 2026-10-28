@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 226 27% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 226 27% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 226 27% 14%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 226 27% 14%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 16% 95%;
+    --muted-foreground: 215 11% 40%;
+    --accent: 174 84% 32%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 347 77% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 20% 91%;
+    --input: 218 20% 91%;
+    --ring: 221 83% 53%;
+    --radius: 0.625rem;
+    --sidebar-background: 226 27% 14%;
+    --sidebar-foreground: 0 0% 100%;
+  }
+
+  body {
+    @apply bg-[#F7F8FA] text-aion-ink font-sans antialiased;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/90 backdrop-blur-sm border border-aion-line shadow-card;
+  }
+
+  .glass-panel-hover {
+    @apply glass-panel hover:shadow-card-hover hover:border-captura/30 transition-all duration-200;
+  }
+
+  .badge-compact {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-200 hover:shadow-md hover:border-captura/20;
+  }
+
+  .nav-tab {
+    @apply flex items-center gap-1.5 px-2.5 py-2 text-[13px] font-medium rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap;
+    @apply text-aion-muted hover:text-captura hover:bg-captura-light;
+  }
+
+  .nav-tab-active {
+    @apply bg-captura text-white hover:bg-captura hover:text-white shadow-sm;
+  }
+
+  .kpi-card {
+    @apply glass-panel p-5 rounded-xl;
+  }
+
+  /* Bloques de texto monoespaciado: diagramas del documento y paquetes de decision */
+  .doc-block {
+    @apply font-mono text-[11.5px] leading-relaxed bg-aion-ink text-slate-100 rounded-lg p-4 overflow-x-auto whitespace-pre;
+  }
+
+  .doc-block-light {
+    @apply font-mono text-[11.5px] leading-relaxed bg-slate-50 text-aion-ink border border-aion-line rounded-lg p-4 overflow-x-auto whitespace-pre;
+  }
+
+  .kbd {
+    @apply font-mono text-[11px] px-1.5 py-0.5 rounded border border-aion-line bg-slate-50 text-aion-muted;
+  }
+
+  .section-title {
+    @apply text-sm font-bold text-aion-ink flex items-center gap-2;
+  }
+}
+
+/* Modo teatro de la pestaña Agentes: sin pie de página y sin margen superior. */
+html[data-teatro] footer {
+  display: none;
+}
+html[data-teatro] main {
+  padding-top: 0.5rem;
+}
