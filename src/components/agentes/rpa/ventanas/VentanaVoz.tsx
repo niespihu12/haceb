@@ -34,7 +34,7 @@ function Burbuja({ dl, i, texto, quien, estimado, crono, prog, resaltado }: {
 }) {
   const agente = quien === 'agente';
   return (
-    <div data-ancla={anclaTurno(i)} className={`flex ${agente ? 'justify-start' : 'justify-end'} animate-toast-in`}>
+    <div data-ancla={`voz.fila.turno-${i}`} className={`flex ${agente ? 'justify-start' : 'justify-end'} animate-toast-in`}>
       <div
         className={`max-w-[84%] rounded-lg px-2 py-1 border text-[10.5px] leading-snug ${agente ? 'bg-violet-50 border-violet-200 text-slate-800 rounded-tl-sm' : 'bg-white border-slate-200 text-slate-800 rounded-tr-sm'} ${resaltado ? 'ring-1 ring-amber-400' : ''}`}
       >
@@ -78,7 +78,7 @@ function ContextoOperacion({ caso, paso, p }: { caso: Caso; paso?: PasoPlan; p: 
   const vehiculoConocido = infoPaso(caso, 's5').estado === 'hecho';
   const vehiculo = o.transportador && vehiculoConocido ? `${o.transportador.placa} · ${o.transportador.nombre}` : null;
   return (
-    <div data-ancla={ANCLA_VOZ.contexto} className="flex flex-col gap-1">
+    <div data-ancla="voz.panel.contexto" className="flex flex-col gap-1">
       <FilaDato etiqueta="Operación" valor={antes ? 'Sin número aún (R03)' : o.id} />
       <FilaDato etiqueta="Ruta" valor={ve(0.3) ? ruta : '—'} />
       <FilaDato
@@ -151,19 +151,21 @@ function VentanaVoz({ caso, vista, paso, progreso, velocidad, actor, medir, relo
         {/* Cabecera de la llamada */}
         <div className="shrink-0 flex items-stretch gap-2 px-2 py-1 border-b border-violet-200 bg-violet-50/60">
           <div className="flex-1 min-w-0 grid grid-cols-[1.25fr_1fr] gap-x-2 gap-y-0.5">
-            <div data-ancla={ANCLA_VOZ.interlocutor} className={`min-w-0 rounded px-1 -mx-1 ${eInterlocutor.resaltado ? 'bg-amber-100 ring-1 ring-amber-300' : ''}`}>
+            <div data-ancla="voz.campo.interlocutor" className={`min-w-0 rounded px-1 -mx-1 ${eInterlocutor.resaltado ? 'bg-amber-100 ring-1 ring-amber-300' : ''}`}>
               <Etiqueta>Interlocutor · {ROL[dl.interlocutor]}</Etiqueta>
               <div className="text-[11px] font-semibold text-slate-900 truncate">{dl.nombre}</div>
             </div>
-            <CampoTecleado
-              etiqueta="Teléfono"
-              valor={dl.telefono}
-              ancla={ANCLA_VOZ.telefono}
-              tecleo={sal ? eTel.tecleo : undefined}
-              foco={eTel.foco}
-              resaltado={eTel.resaltado}
-            />
-            <div data-ancla={ANCLA_VOZ.objetivo} className={`min-w-0 rounded px-1 -mx-1 ${eObjetivo.resaltado ? 'bg-amber-100 ring-1 ring-amber-300' : ''}`}>
+            <div data-ancla="voz.campo.telefono" className="min-w-0">
+              <CampoTecleado
+                etiqueta="Teléfono"
+                valor={dl.telefono}
+                ancla="voz.campo.telefono.valor"
+                tecleo={sal ? eTel.tecleo : undefined}
+                foco={eTel.foco}
+                resaltado={eTel.resaltado}
+              />
+            </div>
+            <div data-ancla="voz.campo.objetivo" className={`min-w-0 rounded px-1 -mx-1 ${eObjetivo.resaltado ? 'bg-amber-100 ring-1 ring-amber-300' : ''}`}>
               <Etiqueta>Objetivo</Etiqueta>
               <div className="text-[10.5px] text-slate-800 truncate">{dl.objetivo}</div>
             </div>
@@ -181,19 +183,31 @@ function VentanaVoz({ caso, vista, paso, progreso, velocidad, actor, medir, relo
               <span className="font-mono tabular-nums text-[12px] font-semibold text-slate-800 w-[38px] text-right">{crono}</span>
             </div>
             <div className="flex items-center gap-1">
+              {sal ? (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  data-ancla="voz.btn.llamar"
+                  className={`h-[18px] px-2 rounded border text-[9.5px] font-medium inline-flex items-center gap-1 ${llamarActivo ? 'text-white border-transparent' : 'bg-slate-100 text-slate-400 border-slate-200'} ${eLlamar.clic ? 'brightness-90' : ''}`}
+                  style={llamarActivo ? { backgroundColor: eLlamar.clic ? '#047857' : '#059669' } : undefined}
+                >
+                  <Phone className="w-3 h-3" /> Llamar
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  data-ancla="voz.btn.contestar"
+                  className={`h-[18px] px-2 rounded border text-[9.5px] font-medium inline-flex items-center gap-1 ${llamarActivo ? 'text-white border-transparent' : 'bg-slate-100 text-slate-400 border-slate-200'} ${eLlamar.clic ? 'brightness-90' : ''}`}
+                  style={llamarActivo ? { backgroundColor: eLlamar.clic ? '#047857' : '#059669' } : undefined}
+                >
+                  <PhoneCall className="w-3 h-3" /> Contestar
+                </button>
+              )}
               <button
                 type="button"
                 tabIndex={-1}
-                data-ancla={sal ? ANCLA_VOZ.btnLlamar : ANCLA_VOZ.btnContestar}
-                className={`h-[18px] px-2 rounded border text-[9.5px] font-medium inline-flex items-center gap-1 ${llamarActivo ? 'text-white border-transparent' : 'bg-slate-100 text-slate-400 border-slate-200'} ${eLlamar.clic ? 'brightness-90' : ''}`}
-                style={llamarActivo ? { backgroundColor: eLlamar.clic ? '#047857' : '#059669' } : undefined}
-              >
-                {sal ? <Phone className="w-3 h-3" /> : <PhoneCall className="w-3 h-3" />} {sal ? 'Llamar' : 'Contestar'}
-              </button>
-              <button
-                type="button"
-                tabIndex={-1}
-                data-ancla={ANCLA_VOZ.btnColgar}
+                data-ancla="voz.btn.colgar"
                 className={`h-[18px] px-2 rounded border text-[9.5px] font-medium inline-flex items-center gap-1 ${enLlamada ? 'text-white border-transparent' : 'bg-slate-100 text-slate-400 border-slate-200'} ${eColgar.clic ? 'brightness-90' : ''}`}
                 style={enLlamada ? { backgroundColor: eColgar.clic ? '#991b1b' : '#dc2626' } : undefined}
               >
@@ -241,7 +255,7 @@ function VentanaVoz({ caso, vista, paso, progreso, velocidad, actor, medir, relo
             <div className="flex-1 min-h-0 overflow-auto px-2 py-1 flex flex-col gap-1.5">
               <ContextoOperacion caso={caso} paso={pasoVoz} p={p} />
               {fase === 'final' && (
-                <div data-ancla={ANCLA_VOZ.resultado} className={`mt-auto rounded border px-1.5 py-1 animate-toast-in ${res.clase} ${eRes.resaltado ? 'ring-1 ring-amber-400' : ''}`}>
+                <div data-ancla="voz.campo.resultado" className={`mt-auto rounded border px-1.5 py-1 animate-toast-in ${res.clase} ${eRes.resaltado ? 'ring-1 ring-amber-400' : ''}`}>
                   <div className="flex items-center gap-1">
                     <Etiqueta>Resultado</Etiqueta>
                     <span className="ml-auto text-[10px] font-semibold">{res.texto}</span>

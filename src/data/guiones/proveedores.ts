@@ -52,6 +52,15 @@ const COORD: Record<string, [number, number]> = {
   Bucaramanga: [7.12, -73.12], Barranquilla: [10.96, -74.78], Pereira: [4.81, -75.69], Pasto: [1.21, -77.28],
   Villavicencio: [4.15, -73.63],
 };
+/** Proveedores adicionales de la base (ficticios) para que el corte por vehículo cuadre con el plan cuando la flota propia no alcanza. */
+const EXTRA: { nombre: string; base: string; cumplimiento: number; placa: string; conductor: string; telefono: string }[] = [
+  { nombre: 'Rutas del Valle Carga', base: 'Cali', cumplimiento: 88, placa: 'WNB 316', conductor: '', telefono: '' },
+  { nombre: 'Transportes Altiplano', base: 'Bogotá', cumplimiento: 86, placa: 'UFR 742', conductor: '', telefono: '' },
+  { nombre: 'Carga Segura del Norte', base: 'Bucaramanga', cumplimiento: 84, placa: 'SQT 905', conductor: '', telefono: '' },
+  { nombre: 'Logística Ribera', base: 'Medellín', cumplimiento: 90, placa: 'SLH 227', conductor: '', telefono: '' },
+  { nombre: 'Fletes Cordillera', base: 'Pereira', cumplimiento: 83, placa: 'VJK 580', conductor: '', telefono: '' },
+  { nombre: 'Cargas Andinas del Sur', base: 'Cali', cumplimiento: 87, placa: 'WKD 664', conductor: '', telefono: '' },
+];
 const RUTAS_ALT = ['Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Pereira', 'Bucaramanga', 'Cartagena'];
 
 function km(a: [number, number], b: [number, number]): number {
@@ -105,7 +114,12 @@ export function modeloBase(d: DatosCaso): ModeloBase {
   const n = d.negociacion.length;
   const objetivo = n + 4;
 
-  const base = TRANSPORTADORES.map(t => {
+  const faltan = Math.max(0, objetivo - TRANSPORTADORES.filter(t => t.flota.includes(vehiculo)).length);
+  const fuente = [
+    ...TRANSPORTADORES,
+    ...EXTRA.slice(0, faltan).map((x, i) => ({ id: `TR-${11 + i}`, nombre: x.nombre, base: x.base, flota: [vehiculo, vehiculo === 'Turbo' ? 'Sencillo' : 'Turbo'] as TipoVehiculo[], cumplimiento: x.cumplimiento, conductor: x.conductor, telefono: x.telefono, placa: x.placa })),
+  ];
+  const base = fuente.map(t => {
     const num = Number(t.id.slice(3)) || 0;
     const tieneVeh = t.flota.includes(vehiculo);
     const candidata = ids.has(t.id);
