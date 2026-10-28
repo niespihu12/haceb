@@ -50,7 +50,7 @@ automático `catA` gris · asistido `catC` ámbar · humano `catD` rojo.
 | `#/control-tower` | Control Tower | 9 KPIs en vivo, preguntas de negocio respondidas, gráficos, heatmap etapa × canal, riesgo de SLA |
 | `#/ontologia` | Ontología | Entidades · Relaciones · Taxonomías · Máquina de estados · Reglas · Glosario · Supuestos |
 | `#/operacion/:id` | Detalle | Recorrido, datos mínimos, novedad y alternativas, comunicaciones, trazabilidad, expediente |
-| `#/agentes` | Agentes | **Pendiente**: Fase 0 entregada en `AGENTES-MAPA.md`, a la espera del OK |
+| `#/agentes` | Agentes | Equipo de 12 agentes ejecutando y revisando el proceso en vivo: cinta, bandeja de solicitudes, estación con escritorio RPA, pensamiento, bitácora, expediente, Director de escena (21 escenas) y modo teatro |
 
 Barra superior: marca, pestañas, interruptor **Selección automática** (R09), velocidad 1x/2x/5x/10x, play/pause/stop,
 reloj simulado (salta noches y domingos) + tick, botón **Visión** (presentación ejecutiva).
@@ -89,8 +89,26 @@ local). Archivos: `src/data/implementacionData.ts`, `src/components/RutaImplemen
 
 ## 7. Pestaña Agentes
 
-Fase 0 (mapa etapa → agente → pantalla → pasos → estado → reglas → novedades → persona) en `AGENTES-MAPA.md`.
-No se ha escrito código de la pestaña; espera tu OK.
+Equipo de **12 agentes** (sobre las 3 familias de IA del insumo: negociación, seguimiento y cliente) que ejecutan y revisan las 17
+etapas **en vivo y como si fuera real** (`#/agentes`). Mapa aprobado: `AGENTES-MAPA.md`.
+
+- **Cinta de agentes** con la operación en manos, la acción en curso y la cola; entregas animadas.
+- **Bandeja de solicitudes**: llamada IA · formulario · integración · registro del coordinador.
+- **Estación del agente** (toggle Escritorio / Tarjetas): pensamiento en primera persona citando `Rnn`, stepper revisable y el
+  **escritorio RPA** con 9 ventanas funcionales (bandeja, consola de voz, plataforma de coordinación, base de proveedores, agenda
+  centralizada, revisiones, tablero de seguimiento, Mesa del coordinador y expediente) y un cursor que las opera.
+- **Mesa del coordinador** (cinta ámbar «fuera del software del agente»): la persona lee el paquete, firma con PIN y decide; el agente
+  sigue con otro caso.
+- **Bitácora**, **expediente** (los 10 contenidos del insumo), **Director de escena** (21 escenas: normal, selección manual, las 17
+  novedades, cancelación y consulta entrante) y **modo teatro** (`T`); atajos: Espacio pausa, 1/2/5/0 velocidad, N solicitud, → siguiente.
+- Cada caso es una `Operacion` real: su trayectoria completa se calcula al crearla con `motor.transicionar()` (rng por `seq`,
+  reintentos hasta que la novedad coincide con el escenario) y el plan de pasos se **deriva de esa trayectoria**
+  (`src/data/agentesPlan.ts`, soporta reingresos y cancelación). Cada paso que cambia el estado lo publica al pipeline
+  (`origen: 'agentes'`).
+- Reglas de oro: todo lo visible es función pura del progreso del paso (sin timers ni `AnimatePresence` con salida), determinismo por `seq`.
+- **Verificación**: `node scripts/verificar-agentes.mjs` (81 casos: 60 aleatorios + 21 escenas; anclas existentes en el DOM, orden de
+  acciones, un diálogo por paso, actores humanos en las esperas, sin timers) → 0 incoherencias; `node scripts/plan-ver.mjs <escena>`
+  imprime el plan de una escena.
 
 ## 8. Estructura
 
@@ -103,5 +121,5 @@ src/
   components/ Layout · Navbar · Footer · shared · PresentationModal · RutaImplementacion · SubprocesoSimulacion
   pages/ Home · Proceso · Pipeline · Coordinador · Sistemas · ControlTower · Ontologia · OperacionDetail
   lib/ utils · rng · rutaImplementacion · levantamientoRemoto
-scripts/ smoke-motor.entry.ts   (prueba de humo del motor: esbuild + node)
+scripts/ smoke-motor.entry.ts · plan-smoke.entry.ts · plan-ver.mjs · verificar-agentes.mjs · guion-comercial.py
 ```

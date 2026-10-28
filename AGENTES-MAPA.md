@@ -1,10 +1,10 @@
-# Pestaña «Agentes» · Haceb — Mapa del proceso (Fase 0 · espera tu OK)
+# Pestaña «Agentes» · Haceb — Mapa del proceso (aprobado y construido)
 
 Contrato para construir `#/agentes`: un equipo de agentes ejecutando y revisando **este** proceso tal como está
 en `src/data/procesoData.ts` (17 etapas, 2 esperas, 2 estados de fin, 3 categorías de decisión, 17 novedades,
 30 reglas `Rnn` con políticas `POL-XX-nn`, 25 nombres de evento — supuesto, 3 familias de agente de IA).
 Arquitectura reutilizada de `Logistica` / `MEDVISION-v2` (motor discreto, escritorio RPA, guiones, estación, bandeja,
-cinta, bitácora, expediente, director, teatro). **No se escribe código de la pestaña hasta tu OK.**
+cinta, bitácora, expediente, director, teatro). **Estado: construido (28/10/2026).** Ver README §7.
 
 - **Unidad de trabajo**: la Operación de transporte (`Operacion`, id `OP-0001`).
 - **Disparador**: la solicitud de transporte por los 4 canales del insumo (P2–P3): **llamada atendida por IA ·
