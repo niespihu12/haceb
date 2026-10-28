@@ -29,6 +29,7 @@ const e1: Guion = (c: CtxGuion) => {
     { t: 0.88, hasta: 1, tipo: 'toast', texto: `${nLl} llamadas · ${nSo} soportes en el expediente`, nivel: 'ok' },
     { t: 0.88, hasta: 1, tipo: 'estado', texto: `${nLl} llamadas · ${nSo} soportes · grabaciones solo si están autorizadas`, nivel: 'ok' },
   ];
+  ui.sort((a, b) => a.t - b.t);
   return {
     vista: 'expediente.expediente',
     ui,
@@ -84,6 +85,7 @@ const e4: Guion = (c: CtxGuion) => {
     { t: T_EXPEDIENTE.e4Sellado, hasta: 1, tipo: 'toast', texto: `Expediente ${num} cerrado y sellado`, nivel: 'ok' },
     { t: T_EXPEDIENTE.e4Sellado, hasta: 1, tipo: 'estado', texto: `${num} · sello SHA-256 ${c.d.expediente.hash.slice(0, 16)}…`, nivel: 'ok' },
   ];
+  ui.sort((a, b) => a.t - b.t);
   return {
     vista: 'expediente.expediente',
     ui,
