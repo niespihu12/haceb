@@ -79,7 +79,7 @@ function FilaProveedor({ f, m, a, sinCand, paso, p }: { f: FilaBase; m: ModeloBa
       <span className="w-[22px] shrink-0 text-right font-mono tabular-nums text-slate-700">{f.cumplimiento}</span>
       <span className={`w-[104px] shrink-0 truncate ${f.candidata && !fuera ? 'text-slate-700' : 'text-slate-400'}`}>
         {f.rutas.map((r, i) => (
-          <span key={r} className={i === 0 && f.candidata ? 'font-semibold text-teal-700' : ''}>{i > 0 ? ' · ' : ''}{r}</span>
+          <span key={`${r}-${i}`} className={i === 0 && f.candidata ? 'font-semibold text-teal-700' : ''}>{i > 0 ? ' · ' : ''}{r}</span>
         ))}
       </span>
       <span className="w-[44px] shrink-0 flex items-center gap-1">
